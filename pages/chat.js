@@ -1,21 +1,59 @@
 import { Box, Text, TextField, Image, Button } from "@skynexui/components";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import appConfig from "../config.json";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_ANONKEY;
+
+const SUPABASE_URL = "https://ucsbftnqollsezmzmszx.supabase.co";
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function ChatPage() {
   // Sua lógica vai aqui
   const [mensagem, setMensagem] = useState("");
   const [listaDeMensagens, setListaDeMensagens] = useState([]);
 
+  useEffect(() => {
+    supabaseClient
+      .from("mensagens")
+      .select("*")
+      .order("id", { ascending: false })
+      .then(({ data }) => {
+        setListaDeMensagens(data);
+      });
+  }, []);
+
   // ./Sua lógica vai aqui
   function handleNovaMensagem(novaMensagem) {
     const mensagem = {
-      id: listaDeMensagens.length + 1,
       de: "neiltonseguins",
       texto: novaMensagem,
+      deleta: false,
     };
-    setListaDeMensagens([mensagem, ...listaDeMensagens]);
+
+    supabaseClient
+      .from("mensagens")
+      .insert([mensagem])
+      .then(({ data }) => {
+        setListaDeMensagens([data[0], ...listaDeMensagens]);
+      });
+
     setMensagem("");
+  }
+
+  async function handleDeletaMensagem(id) {
+    const { data, erro } = await supabaseClient
+      .from("mensagens")
+      .delete()
+      .match({ id });
+  }
+
+  function atualizaMensagens() {
+    setListaDeMensagens(
+      listaDeMensagens.filter((e) => {
+        return !e.deleta;
+      })
+    );
   }
 
   return (
@@ -40,8 +78,8 @@ export default function ChatPage() {
           boxShadow: "0 2px 10px 0 rgb(0 0 0 / 20%)",
           borderRadius: "5px",
           backgroundColor: appConfig.theme.colors.neutrals[700],
-          height: "100%",
-          maxWidth: "95%",
+          height: "90%",
+          maxWidth: "50%",
           maxHeight: "95vh",
           padding: "32px",
           opacity: "0.95",
@@ -63,15 +101,9 @@ export default function ChatPage() {
           <MessageList
             mensagens={listaDeMensagens}
             atualizaListaDeMensagens={setListaDeMensagens}
+            deletaMensagem={handleDeletaMensagem}
+            atualizaListaDeMensagens={atualizaMensagens}
           />
-          {/* versão didática de como pegar e exibir a lista de mensagens */}
-          {/* {listaDeMensagens.map((mensagemAtual) => {
-            return (
-              <li key={mensagemAtual.id}>
-                {mensagemAtual.de}: {mensagemAtual.texto}
-              </li>
-            );
-          })} */}
 
           <Box
             as="form"
@@ -146,19 +178,13 @@ function Header() {
 }
 
 function MessageList(props) {
-  console.log(props.mensagens);
-
-  function removeMensagem(listaDeMensagens, chave, valor) {
-    return listaDeMensagens.filter(function (e) {
-      return e[chave] !== valor;
-    });
-  }
+  // console.log(props.mensagens);
 
   return (
     <Box
       tag="ul"
       styleSheet={{
-        overflow: "scroll",
+        overflowY: "scroll",
         display: "flex",
         flexDirection: "column-reverse",
         flex: 1,
@@ -213,12 +239,9 @@ function MessageList(props) {
               </Box>
               <Button
                 onClick={() => {
-                  const novaListaDeMensagens = removeMensagem(
-                    props.mensagens,
-                    "texto",
-                    mensagem.texto
-                  );
-                  props.atualizaListaDeMensagens(novaListaDeMensagens);
+                  mensagem.deleta = true;
+                  props.deletaMensagem(mensagem.id);
+                  props.atualizaListaDeMensagens();
                 }}
                 iconName="times"
                 variant="tertiary"
