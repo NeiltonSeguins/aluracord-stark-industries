@@ -20,7 +20,7 @@ function Titulo(props) {
 }
 
 export default function PaginaInicial() {
-  const [username, setUsername] = useState("neiltonseguins");
+  const [username, setUsername] = useState("");
   const roteamento = useRouter();
 
   return (
@@ -62,11 +62,9 @@ export default function PaginaInicial() {
             onSubmit={(event) => {
               event.preventDefault();
               if (username.length >= 3) {
-                roteamento.push("/chat");
+                roteamento.push(`/chat?username=${username}`);
               } else {
-                alert(
-                  "Campo inválido! Número de caracteres menor ou igual a dois!"
-                );
+                alert("Insira um nome de usuário válido!");
               }
             }}
             styleSheet={{
@@ -143,7 +141,11 @@ export default function PaginaInicial() {
                 borderRadius: "50%",
                 marginBottom: "16px",
               }}
-              src={`https://github.com/${username}.png`}
+              src={
+                username.length > 1
+                  ? `https://github.com/${username}.png`
+                  : `https://softlocus.com/wp-content/uploads/2019/05/Circle2.gif`
+              }
             />
             <Text
               variant="body4"
@@ -154,7 +156,7 @@ export default function PaginaInicial() {
                 borderRadius: "1000px",
               }}
             >
-              {username}
+              {username === "" ? `jarvis` : username}
             </Text>
           </Box>
           {/* Photo Area */}
