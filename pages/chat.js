@@ -1,5 +1,7 @@
 import { Box, Text, TextField, Image, Button } from "@skynexui/components";
 import React, { useEffect, useState } from "react";
+import ClipLoader from "react-spinners/ClipLoader";
+import { css } from "@emotion/react";
 import appConfig from "../config.json";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/router";
@@ -9,6 +11,11 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_ANONKEY;
 
 const SUPABASE_URL = "https://ucsbftnqollsezmzmszx.supabase.co";
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const override = css`
+  display: block;
+  margin: 0 auto;
+`;
 
 function escutaMensagensEmTempoReal(adicionaMensagem) {
   return supabaseClient
@@ -25,6 +32,13 @@ export default function ChatPage() {
   const usuarioLogado = roteamento.query.username;
   const [mensagem, setMensagem] = useState("");
   const [listaDeMensagens, setListaDeMensagens] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function fetchData() {
+    setLoading(true);
+    await fetch("/").then(() => {});
+    setLoading(false);
+  }
 
   useEffect(() => {
     supabaseClient
@@ -34,6 +48,8 @@ export default function ChatPage() {
       .then(({ data }) => {
         setListaDeMensagens(data);
       });
+
+    fetchData();
 
     escutaMensagensEmTempoReal((novaMensagem) => {
       setListaDeMensagens((valorAtualDaLista) => {
@@ -120,6 +136,7 @@ export default function ChatPage() {
             atualizaListaDeMensagens={setListaDeMensagens}
             deletaMensagem={handleDeletaMensagem}
             atualizaListaDeMensagens={atualizaMensagens}
+            loading={loading}
           />
 
           <Box
@@ -218,93 +235,109 @@ function Header() {
 }
 
 function MessageList(props) {
-  // console.log(props.mensagens);
-
   return (
-    <Box
-      tag="ul"
-      styleSheet={{
-        overflowY: "scroll",
-        display: "flex",
-        flexDirection: "column-reverse",
-        flex: 1,
-        color: appConfig.theme.colors.neutrals["000"],
-        marginBottom: "16px",
-      }}
-    >
-      {props.mensagens.map((mensagem) => {
-        return (
-          <Text
-            key={mensagem.id}
-            tag="li"
-            styleSheet={{
-              borderRadius: "5px",
-              padding: "6px",
-              marginBottom: "12px",
-              hover: {
-                backgroundColor: appConfig.theme.colors.neutrals[700],
-              },
-            }}
-          >
-            <Box
+    <>
+      <Box
+        styleSheet={{
+          marginTop: "100px",
+        }}
+      >
+        {props.loading ? (
+          <ClipLoader
+            color={appConfig.theme.colors.primary["700"]}
+            loading={props.loading}
+            css={override}
+            size={150}
+          />
+        ) : (
+          ""
+        )}
+      </Box>
+      <Box
+        tag="ul"
+        styleSheet={{
+          overflowY: "scroll",
+          display: "flex",
+          flexDirection: "column-reverse",
+          flex: 1,
+          color: appConfig.theme.colors.neutrals["000"],
+          marginBottom: "16px",
+        }}
+      >
+        {props.mensagens.map((mensagem) => {
+          return (
+            <Text
+              key={mensagem.id}
+              tag="li"
               styleSheet={{
-                marginBottom: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                borderRadius: "5px",
+                padding: "6px",
+                marginBottom: "12px",
+                hover: {
+                  backgroundColor: appConfig.theme.colors.neutrals[700],
+                },
               }}
             >
-              <Box>
+              <Box
+                styleSheet={{
+                  marginBottom: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box>
+                  <Image
+                    styleSheet={{
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      marginRight: "8px",
+                    }}
+                    src={`https://github.com/${mensagem.de}.png`}
+                  />
+                  <Text tag="strong">{mensagem.de}</Text>
+                  <Text
+                    styleSheet={{
+                      fontSize: "10px",
+                      marginLeft: "8px",
+                      color: appConfig.theme.colors.neutrals[300],
+                    }}
+                    tag="span"
+                  >
+                    {new Date().toLocaleDateString()}
+                  </Text>
+                </Box>
+                <Button
+                  onClick={() => {
+                    mensagem.deleta = true;
+                    props.deletaMensagem(mensagem.id);
+                    props.atualizaListaDeMensagens();
+                  }}
+                  iconName="times"
+                  variant="tertiary"
+                  colorVariant="light"
+                  rounded="full"
+                />
+              </Box>
+              {mensagem.texto.startsWith(":sticker:") ? (
                 <Image
                   styleSheet={{
-                    width: "20px",
-                    height: "20px",
-                    borderRadius: "50%",
+                    width: "150px",
+                    height: "150px",
                     display: "inline-block",
                     marginRight: "8px",
                   }}
-                  src={`https://github.com/${mensagem.de}.png`}
+                  src={mensagem.texto.replace(":sticker:", "")}
                 />
-                <Text tag="strong">{mensagem.de}</Text>
-                <Text
-                  styleSheet={{
-                    fontSize: "10px",
-                    marginLeft: "8px",
-                    color: appConfig.theme.colors.neutrals[300],
-                  }}
-                  tag="span"
-                >
-                  {new Date().toLocaleDateString()}
-                </Text>
-              </Box>
-              <Button
-                onClick={() => {
-                  mensagem.deleta = true;
-                  props.deletaMensagem(mensagem.id);
-                  props.atualizaListaDeMensagens();
-                }}
-                iconName="times"
-                variant="tertiary"
-                colorVariant="light"
-                rounded="full"
-              />
-            </Box>
-            {mensagem.texto.startsWith(":sticker:") ? (
-              <Image
-                styleSheet={{
-                  width: "150px",
-                  height: "150px",
-                  display: "inline-block",
-                  marginRight: "8px",
-                }}
-                src={mensagem.texto.replace(":sticker:", "")}
-              />
-            ) : (
-              mensagem.texto
-            )}
-          </Text>
-        );
-      })}
-    </Box>
+              ) : (
+                mensagem.texto
+              )}
+            </Text>
+          );
+        })}
+      </Box>
+    </>
   );
 }
